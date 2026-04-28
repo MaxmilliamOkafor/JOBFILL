@@ -45,6 +45,29 @@
             <div class="tab-pane fade show active" id="personal" role="tabpanel" aria-labelledby="personal-tab">
 
                 <br>
+
+                <div class="border rounded p-3 mb-3" id="jf-profile-panel">
+                    <h5 class="mb-1">Profile Backup &mdash; never re-enter your info</h5>
+                    <p class="text-secondary small mb-2">
+                        Save every saved field on this page (Personal Info, Additional Info, Education,
+                        Work Experience, Custom Fields, and the uploaded resume) to a single
+                        <code>.json</code> file, and restore it on any device or after a reinstall.
+                    </p>
+                    <div>
+                        <a href="#" class="border-0 text-primary mr-3" id="jf-profile-export">[&gt;] Export Profile (.json)</a>
+                        &nbsp;&nbsp;
+                        <a href="#" class="border-0 text-primary mr-3" id="jf-profile-import-merge">[&lt;] Import Profile (Merge)</a>
+                        &nbsp;&nbsp;
+                        <a href="#" class="border-0 text-primary text-danger" id="jf-profile-import-replace">[&lt;] Import Profile (Replace All)</a>
+                        <input type="file" id="jf-profile-import-file" accept="application/json,.json" class="d-none">
+                    </div>
+                    <div class="text-secondary small mt-2">
+                        Tip: <i>Merge</i> only overwrites fields present in the backup file; <i>Replace All</i>
+                        wipes existing JobFill data first.
+                    </div>
+                    <div id="jf-profile-status" class="d-none small mt-2"></div>
+                </div>
+
                 <form>
 
                     <div class="form-row">
