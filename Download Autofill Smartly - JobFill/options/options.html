@@ -858,6 +858,42 @@
                 </div>
                 <br>
 
+                <div class="border-top pt-3 mt-2" id="jf-extras-panel">
+                    <h5 class="mb-2">Saved Responses &mdash; presets &amp; bulk import/export</h5>
+                    <p class="text-secondary mb-2">
+                        Add a ready-made answer for common application questions, or back up
+                        and restore every saved Autofill response in one file.
+                    </p>
+
+                    <div class="form-row align-items-center mb-2">
+                        <div class="form-group col-md-6 mb-2">
+                            <label class="mb-1"><b>Work Authorization Status</b></label>
+                            <div class="text-secondary small mb-1">
+                                Adds a preset that handles labels matching
+                                <code>((work &amp;&amp; authorization) || sponsorship || visa || permit)</code>:
+                                types <i>Authorized to work</i> into text inputs and textareas, and selects
+                                options matching <code>(yes || authorized)</code> for dropdowns, radios and checkboxes.
+                            </div>
+                            <a href="#" class="border-0 text-primary" id="jf-extras-add-work-auth">[+] Add Work Authorization preset</a>
+                        </div>
+                        <div class="form-group col-md-6 mb-2">
+                            <label class="mb-1"><b>All Autofill responses</b></label>
+                            <div class="text-secondary small mb-1">
+                                Export every Saved Response category to a JSON file, or import a backup.
+                            </div>
+                            <a href="#" class="border-0 text-primary mr-3" id="jf-extras-export-all">[&gt;] Export All Responses</a>
+                            &nbsp;&nbsp;
+                            <a href="#" class="border-0 text-primary mr-3" id="jf-extras-import-all-merge">[&lt;] Import (Merge)</a>
+                            &nbsp;&nbsp;
+                            <a href="#" class="border-0 text-primary text-danger" id="jf-extras-import-all">[&lt;] Import (Replace All)</a>
+                            <input type="file" id="jf-extras-import-file" accept="application/json,.json" class="d-none">
+                        </div>
+                    </div>
+
+                    <div id="jf-extras-status" class="d-none small"></div>
+                </div>
+                <br>
+
             </div>
 
             <button type="submit" class="btn btn-primary" id="saveInfo">Save</button>
@@ -869,5 +905,6 @@
     </div>
 
     <script src="options.js"></script>
+    <script src="jobfill-extras.js"></script>
 </body>
 </html>
