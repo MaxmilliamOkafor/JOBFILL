@@ -3,14 +3,35 @@
 
     var STORAGE_KEY = 'jf-custom-fields';
 
+    var WORK_AUTH_LABEL_CONDITION = '((work && authorization) || sponsorship || visa || permit)';
+    var WORK_AUTH_OPTION_CONDITION = '(yes || authorized)';
+    var WORK_AUTH_FILLING_TEXT = 'Authorized to work';
+
     var WORK_AUTHORIZATION_CATEGORY = {
         category_name: 'Work Authorization',
         matching_conditions: [
             {
+                type: 'input',
+                description: 'Work Authorization Status',
+                condition: WORK_AUTH_LABEL_CONDITION,
+                'input-content': WORK_AUTH_FILLING_TEXT
+            },
+            {
+                type: 'textarea',
+                description: 'Work Authorization Status',
+                condition: WORK_AUTH_LABEL_CONDITION,
+                'input-content': WORK_AUTH_FILLING_TEXT
+            },
+            {
                 type: 'select',
                 description: 'Work Authorization Status',
-                condition: '((work && authorization) || sponsorship || visa || permit)',
-                'option-cdn': '(yes || authorized)'
+                condition: WORK_AUTH_LABEL_CONDITION,
+                'option-cdn': WORK_AUTH_OPTION_CONDITION
+            },
+            {
+                type: 'checkbox',
+                description: 'Work Authorization Status',
+                'option-cdn': WORK_AUTH_OPTION_CONDITION
             }
         ]
     };
@@ -52,16 +73,50 @@
         });
     }
 
+    function categoryCoversAllTypes(category) {
+        if (!category || !Array.isArray(category.matching_conditions)) return false;
+        var seen = {};
+        category.matching_conditions.forEach(function (cond) {
+            var desc = (cond && cond.description ? String(cond.description) : '').toLowerCase();
+            if (desc.indexOf('work authorization') !== -1) seen[cond.type] = true;
+        });
+        return seen.input && seen.textarea && seen.select;
+    }
+
     function ensureWorkAuthorizationPreset() {
         getCategories(function (categories) {
-            var alreadyPresent = categories.some(categoryHasWorkAuthorization);
-            if (alreadyPresent) {
+            var existingIdx = -1;
+            for (var i = 0; i < categories.length; i++) {
+                if (categoryHasWorkAuthorization(categories[i])) {
+                    existingIdx = i;
+                    break;
+                }
+            }
+            var fresh = JSON.parse(JSON.stringify(WORK_AUTHORIZATION_CATEGORY));
+            if (existingIdx === -1) {
+                categories.push(fresh);
+                setCategories(categories, function () {
+                    showStatus('Added "Work Authorization Status" preset. Reloading...', false);
+                    setTimeout(function () { window.location.reload(); }, 800);
+                });
+                return;
+            }
+            if (categoryCoversAllTypes(categories[existingIdx])) {
                 showStatus('Work Authorization Status preset is already saved.', false);
                 return;
             }
-            categories.push(JSON.parse(JSON.stringify(WORK_AUTHORIZATION_CATEGORY)));
+            // Upgrade an older partial preset to cover input/textarea/select/checkbox.
+            var existing = categories[existingIdx];
+            var existingTypes = {};
+            (existing.matching_conditions || []).forEach(function (mc) {
+                var desc = (mc && mc.description ? String(mc.description) : '').toLowerCase();
+                if (desc.indexOf('work authorization') !== -1) existingTypes[mc.type] = true;
+            });
+            fresh.matching_conditions.forEach(function (mc) {
+                if (!existingTypes[mc.type]) existing.matching_conditions.push(mc);
+            });
             setCategories(categories, function () {
-                showStatus('Added "Work Authorization Status" preset. Reloading...', false);
+                showStatus('Updated "Work Authorization Status" preset to fill text and dropdown fields. Reloading...', false);
                 setTimeout(function () { window.location.reload(); }, 800);
             });
         });
