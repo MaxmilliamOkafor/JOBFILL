@@ -314,6 +314,19 @@
 
         initProfileBackup();
         initWorkAuthorizationField();
+        clearLegacyMiddleName();
+    }
+
+    // Middle Name was removed from the UI. Force the stored value to empty so
+    // composed full-name fields (which read firstname + middlename + lastname)
+    // collapse to "First Last" instead of leaking an old value.
+    function clearLegacyMiddleName() {
+        try {
+            chrome.storage.sync.set({ middlename: '' }, function () {
+                var el = document.getElementById('middlename');
+                if (el) el.value = '';
+            });
+        } catch (e) { /* noop */ }
     }
 
     // ---------- Profile backup / restore ----------
