@@ -687,17 +687,29 @@
                         </div>
 
                         <div class="form-group col-md-5">
-                            <label for="work-authorization-status">Work Authorization Status</label>
-                            <select id="work-authorization-status" name="work-authorization-status" class="form-control">
+                            <label for="work-authorization-yesno">Work Authorization (Yes / No)</label>
+                            <select id="work-authorization-yesno" name="work-authorization-yesno" class="form-control">
                                 <option value="" selected>--</option>
                                 <option value="yes">Yes</option>
                                 <option value="no">No</option>
+                            </select>
+                            <small class="form-text text-muted">Used for Yes/No dropdowns, radio buttons and checkboxes (e.g. &ldquo;Are you authorized to work?&rdquo;).</small>
+                        </div>
+
+                    </div>
+
+                    <div class="form-row">
+
+                        <div class="form-group col-md-10">
+                            <label for="work-authorization-status">Work Authorization Status (text)</label>
+                            <select id="work-authorization-status" name="work-authorization-status" class="form-control">
+                                <option value="" selected>--</option>
                                 <option value="authorized">Authorized to work</option>
                                 <option value="sponsorship">Requires sponsorship / work permit</option>
                                 <option value="not-authorized">Not authorized to work</option>
                                 <option value="pending">Visa or permit pending</option>
                             </select>
-                            <small id="work-authorization-status-help" class="form-text text-muted d-none"></small>
+                            <small id="work-authorization-status-help" class="form-text text-muted">Used as the answer typed into free-text fields and textareas asking about your work authorization.</small>
                         </div>
 
                     </div>

@@ -6,66 +6,59 @@
     var WORK_AUTH_LABEL_CONDITION = '((work && authorization) || sponsorship || visa || permit)';
     var WORK_AUTH_CATEGORY_NAME = 'Work Authorization';
 
-    // Maps each option in the Additional Info → Work Authorization Status
-    // dropdown to (a) the option-matching condition the autofill engine uses
-    // when the job-site field is a select / radio / checkbox, and (b) the
-    // text it types into a plain input or textarea.
-    var WORK_AUTH_PROFILES = {
-        yes: {
-            optionCdn: '(yes || authorized)',
-            fillingText: 'Yes'
-        },
-        no: {
-            optionCdn: '(=no || (no && (sponsorship || authorized || require)))',
-            fillingText: 'No'
-        },
-        authorized: {
-            optionCdn: '((authorized || authorised) && !not)',
-            fillingText: 'Authorized to work'
-        },
-        sponsorship: {
-            optionCdn: '(sponsorship || (work && permit) || require)',
-            fillingText: 'Requires sponsorship / work permit'
-        },
-        'not-authorized': {
-            optionCdn: '((not && (authorized || authorised)) || (no && (authorized || authorised)))',
-            fillingText: 'Not authorized to work'
-        },
-        pending: {
-            optionCdn: '(pending || (visa && (apply || applied)) || (permit && (apply || applied)))',
-            fillingText: 'Visa or permit pending'
-        }
+    // Yes/No answers drive the option-matching condition the autofill engine
+    // uses when the form field is a select / radio / checkbox.
+    var WORK_AUTH_YESNO_OPTION_CDN = {
+        yes: '(yes || authorized || authorised)',
+        no:  '(=no || (no && (sponsorship || require)) || (not && (authorized || authorised)))'
     };
 
-    function buildWorkAuthorizationCategory(profile) {
-        if (!profile) return null;
+    // Status text answers drive the value typed into plain input / textarea
+    // fields. Each maps to a fixed phrase users can edit in their saved
+    // responses afterwards if they want.
+    var WORK_AUTH_STATUS_FILLING_TEXT = {
+        authorized:        'Authorized to work',
+        sponsorship:       'Requires sponsorship / work permit',
+        'not-authorized':  'Not authorized to work',
+        pending:           'Visa or permit pending'
+    };
+
+    function buildWorkAuthorizationCategory(yesNoValue, statusValue) {
+        var optionCdn = WORK_AUTH_YESNO_OPTION_CDN[yesNoValue];
+        var fillingText = WORK_AUTH_STATUS_FILLING_TEXT[statusValue];
+        if (!optionCdn && !fillingText) return null;
+
+        var conditions = [];
+        if (fillingText) {
+            conditions.push({
+                type: 'input',
+                description: 'Work Authorization Status',
+                condition: WORK_AUTH_LABEL_CONDITION,
+                'input-content': fillingText
+            });
+            conditions.push({
+                type: 'textarea',
+                description: 'Work Authorization Status',
+                condition: WORK_AUTH_LABEL_CONDITION,
+                'input-content': fillingText
+            });
+        }
+        if (optionCdn) {
+            conditions.push({
+                type: 'select',
+                description: 'Work Authorization (Yes/No)',
+                condition: WORK_AUTH_LABEL_CONDITION,
+                'option-cdn': optionCdn
+            });
+            conditions.push({
+                type: 'checkbox',
+                description: 'Work Authorization (Yes/No)',
+                'option-cdn': optionCdn
+            });
+        }
         return {
             category_name: WORK_AUTH_CATEGORY_NAME,
-            matching_conditions: [
-                {
-                    type: 'input',
-                    description: 'Work Authorization Status',
-                    condition: WORK_AUTH_LABEL_CONDITION,
-                    'input-content': profile.fillingText
-                },
-                {
-                    type: 'textarea',
-                    description: 'Work Authorization Status',
-                    condition: WORK_AUTH_LABEL_CONDITION,
-                    'input-content': profile.fillingText
-                },
-                {
-                    type: 'select',
-                    description: 'Work Authorization Status',
-                    condition: WORK_AUTH_LABEL_CONDITION,
-                    'option-cdn': profile.optionCdn
-                },
-                {
-                    type: 'checkbox',
-                    description: 'Work Authorization Status',
-                    'option-cdn': profile.optionCdn
-                }
-            ]
+            matching_conditions: conditions
         };
     }
 
@@ -113,11 +106,11 @@
         return -1;
     }
 
-    function syncWorkAuthorizationFromField(value, statusEl) {
+    function syncWorkAuthorizationFromFields(yesNoValue, statusValue, statusEl) {
         getCategories(function (categories) {
             var idx = findWorkAuthorizationCategoryIndex(categories);
-            var profile = WORK_AUTH_PROFILES[value];
-            if (!profile) {
+            var built = buildWorkAuthorizationCategory(yesNoValue, statusValue);
+            if (!built) {
                 if (idx !== -1) {
                     categories.splice(idx, 1);
                     setCategories(categories, function () {
@@ -126,7 +119,6 @@
                 }
                 return;
             }
-            var built = buildWorkAuthorizationCategory(profile);
             if (idx === -1) {
                 categories.push(built);
             } else {
@@ -239,50 +231,38 @@
     }
 
     function initWorkAuthorizationField() {
-        var field = document.getElementById('work-authorization-status');
-        if (!field) return;
+        var yesNoField = document.getElementById('work-authorization-yesno');
+        var statusField = document.getElementById('work-authorization-status');
+        if (!yesNoField && !statusField) return;
         var help = document.getElementById('work-authorization-status-help');
 
-        function reflectHelp(value) {
-            if (!help) return;
-            var profile = WORK_AUTH_PROFILES[value];
-            if (!profile) {
-                help.classList.add('d-none');
-                help.textContent = '';
-                return;
-            }
-            help.textContent =
-                'Autofill will pick options matching ' + profile.optionCdn +
-                ' and type "' + profile.fillingText + '" into text fields.';
-            help.classList.remove('d-none');
+        function currentValues() {
+            return {
+                yesNo:  yesNoField  ? yesNoField.value  : '',
+                status: statusField ? statusField.value : ''
+            };
         }
 
-        // The existing options.js reloads the saved value asynchronously after
-        // we run, so listen for that population and keep the autofill mapping
-        // in sync. We set up two paths: an immediate sync on user change, and
-        // a one-shot sync once the saved value lands in the select.
-        field.addEventListener('change', function () {
-            reflectHelp(field.value);
-            syncWorkAuthorizationFromField(field.value, help);
-        });
-
-        var initialSyncDone = false;
-        function syncOnce() {
-            if (initialSyncDone) return;
-            initialSyncDone = true;
-            reflectHelp(field.value);
-            // Make sure jf-custom-fields has the right entry for whatever is
-            // saved in chrome.storage.sync (or remove it if the field is empty).
-            syncWorkAuthorizationFromField(field.value, null);
+        function onChange() {
+            var v = currentValues();
+            syncWorkAuthorizationFromFields(v.yesNo, v.status, help);
         }
 
-        // The vendor script writes the stored value back into the select via
-        // chrome.storage.sync.get; once that happens we sync once.
-        chrome.storage.sync.get('work-authorization-status', function (res) {
-            if (res && res['work-authorization-status']) {
-                field.value = res['work-authorization-status'];
-            }
-            syncOnce();
+        if (yesNoField)  yesNoField.addEventListener('change', onChange);
+        if (statusField) statusField.addEventListener('change', onChange);
+
+        // Pull saved values up-front (the vendor script also reloads them
+        // asynchronously, but we run the sync to jf-custom-fields once they
+        // land so the autofill mapping reflects the persisted state on every
+        // page open).
+        var keys = [];
+        if (yesNoField)  keys.push('work-authorization-yesno');
+        if (statusField) keys.push('work-authorization-status');
+        chrome.storage.sync.get(keys, function (res) {
+            if (yesNoField  && res['work-authorization-yesno'])  yesNoField.value  = res['work-authorization-yesno'];
+            if (statusField && res['work-authorization-status']) statusField.value = res['work-authorization-status'];
+            var v = currentValues();
+            syncWorkAuthorizationFromFields(v.yesNo, v.status, null);
         });
     }
 
