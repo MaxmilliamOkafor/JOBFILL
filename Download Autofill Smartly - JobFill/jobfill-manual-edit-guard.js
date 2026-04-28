@@ -18,11 +18,12 @@
         ].indexOf(type) !== -1;
     }
 
-    function markUserEdited(el) {
+    function markUserEdited(el, fromTrustedInput) {
         if (!el || !isFormControl(el)) return;
         try {
             el.setAttribute(USER_EDITED_ATTR, '1');
             el[USER_VALUE_PROP] = el.value;
+            if (fromTrustedInput) el.__jfTrustedInput = true;
         } catch (e) { /* noop */ }
     }
 
@@ -31,6 +32,7 @@
         try {
             el.removeAttribute(USER_EDITED_ATTR);
             delete el[USER_VALUE_PROP];
+            delete el.__jfTrustedInput;
         } catch (e) { /* noop */ }
     }
 
@@ -46,6 +48,7 @@
     }
 
     document.addEventListener('keydown', function (ev) {
+        if (!ev.isTrusted) return;
         var t = ev.target;
         if (isFormControl(t)) {
             markUserEdited(t);
@@ -56,7 +59,7 @@
         var t = ev.target;
         if (!isFormControl(t)) return;
         if (!ev.isTrusted) return;
-        markUserEdited(t);
+        markUserEdited(t, true);
         bumpIdle(t);
     }, true);
 
@@ -64,7 +67,7 @@
         var t = ev.target;
         if (!isFormControl(t)) return;
         if (!ev.isTrusted) return;
-        markUserEdited(t);
+        markUserEdited(t, true);
     }, true);
 
     // If the user explicitly clears a field with no value, drop the guard
@@ -88,11 +91,13 @@
         var origSet = desc.set;
         var origGet = desc.get;
         var wrappedSet = function (v) {
-            var hasGuard = this.getAttribute && this.getAttribute(USER_EDITED_ATTR) === '1';
-            if (hasGuard) {
+            // Only block programmatic writes if we have *confirmed* the user
+            // typed a real keystroke into this field (a trusted input/change
+            // event has fired). Anything less and we never get in autofill's
+            // way.
+            if (this.__jfTrustedInput === true) {
                 var userVal = this[USER_VALUE_PROP];
                 if (userVal !== undefined && userVal !== '' && v !== userVal) {
-                    // Skip the programmatic overwrite — keep the user's value.
                     return;
                 }
             }

@@ -4,37 +4,63 @@
     var STORAGE_KEY = 'jf-custom-fields';
 
     var WORK_AUTH_LABEL_CONDITION = '((work && authorization) || sponsorship || visa || permit)';
-    var WORK_AUTH_OPTION_CONDITION = '(yes || authorized)';
-    var WORK_AUTH_FILLING_TEXT = 'Authorized to work';
+    var WORK_AUTH_CATEGORY_NAME = 'Work Authorization';
 
-    var WORK_AUTHORIZATION_CATEGORY = {
-        category_name: 'Work Authorization',
-        matching_conditions: [
-            {
+    // Yes/No answers drive the option-matching condition the autofill engine
+    // uses when the form field is a select / radio / checkbox.
+    var WORK_AUTH_YESNO_OPTION_CDN = {
+        yes: '(yes || authorized || authorised)',
+        no:  '(=no || (no && (sponsorship || require)) || (not && (authorized || authorised)))'
+    };
+
+    // Status text answers drive the value typed into plain input / textarea
+    // fields. Each maps to a fixed phrase users can edit in their saved
+    // responses afterwards if they want.
+    var WORK_AUTH_STATUS_FILLING_TEXT = {
+        authorized:        'Authorized to work',
+        sponsorship:       'Requires sponsorship / work permit',
+        'not-authorized':  'Not authorized to work',
+        pending:           'Visa or permit pending'
+    };
+
+    function buildWorkAuthorizationCategory(yesNoValue, statusValue) {
+        var optionCdn = WORK_AUTH_YESNO_OPTION_CDN[yesNoValue];
+        var fillingText = WORK_AUTH_STATUS_FILLING_TEXT[statusValue];
+        if (!optionCdn && !fillingText) return null;
+
+        var conditions = [];
+        if (fillingText) {
+            conditions.push({
                 type: 'input',
                 description: 'Work Authorization Status',
                 condition: WORK_AUTH_LABEL_CONDITION,
-                'input-content': WORK_AUTH_FILLING_TEXT
-            },
-            {
+                'input-content': fillingText
+            });
+            conditions.push({
                 type: 'textarea',
                 description: 'Work Authorization Status',
                 condition: WORK_AUTH_LABEL_CONDITION,
-                'input-content': WORK_AUTH_FILLING_TEXT
-            },
-            {
+                'input-content': fillingText
+            });
+        }
+        if (optionCdn) {
+            conditions.push({
                 type: 'select',
-                description: 'Work Authorization Status',
+                description: 'Work Authorization (Yes/No)',
                 condition: WORK_AUTH_LABEL_CONDITION,
-                'option-cdn': WORK_AUTH_OPTION_CONDITION
-            },
-            {
+                'option-cdn': optionCdn
+            });
+            conditions.push({
                 type: 'checkbox',
-                description: 'Work Authorization Status',
-                'option-cdn': WORK_AUTH_OPTION_CONDITION
-            }
-        ]
-    };
+                description: 'Work Authorization (Yes/No)',
+                'option-cdn': optionCdn
+            });
+        }
+        return {
+            category_name: WORK_AUTH_CATEGORY_NAME,
+            matching_conditions: conditions
+        };
+    }
 
     function getCategories(callback) {
         chrome.storage.local.get([STORAGE_KEY], function (result) {
@@ -65,61 +91,53 @@
         }, 4000);
     }
 
-    function categoryHasWorkAuthorization(category) {
-        if (!category || !Array.isArray(category.matching_conditions)) return false;
-        return category.matching_conditions.some(function (cond) {
-            var desc = (cond && cond.description ? String(cond.description) : '').toLowerCase();
-            return desc.indexOf('work authorization') !== -1;
-        });
-    }
-
-    function categoryCoversAllTypes(category) {
-        if (!category || !Array.isArray(category.matching_conditions)) return false;
-        var seen = {};
-        category.matching_conditions.forEach(function (cond) {
-            var desc = (cond && cond.description ? String(cond.description) : '').toLowerCase();
-            if (desc.indexOf('work authorization') !== -1) seen[cond.type] = true;
-        });
-        return seen.input && seen.textarea && seen.select;
-    }
-
-    function ensureWorkAuthorizationPreset() {
-        getCategories(function (categories) {
-            var existingIdx = -1;
-            for (var i = 0; i < categories.length; i++) {
-                if (categoryHasWorkAuthorization(categories[i])) {
-                    existingIdx = i;
-                    break;
-                }
-            }
-            var fresh = JSON.parse(JSON.stringify(WORK_AUTHORIZATION_CATEGORY));
-            if (existingIdx === -1) {
-                categories.push(fresh);
-                setCategories(categories, function () {
-                    showStatus('Added "Work Authorization Status" preset. Reloading...', false);
-                    setTimeout(function () { window.location.reload(); }, 800);
+    function findWorkAuthorizationCategoryIndex(categories) {
+        for (var i = 0; i < categories.length; i++) {
+            var c = categories[i];
+            if (c && c.category_name === WORK_AUTH_CATEGORY_NAME) return i;
+            if (c && Array.isArray(c.matching_conditions)) {
+                var hit = c.matching_conditions.some(function (cond) {
+                    var desc = (cond && cond.description ? String(cond.description) : '').toLowerCase();
+                    return desc.indexOf('work authorization') !== -1;
                 });
+                if (hit) return i;
+            }
+        }
+        return -1;
+    }
+
+    function syncWorkAuthorizationFromFields(yesNoValue, statusValue, statusEl) {
+        getCategories(function (categories) {
+            var idx = findWorkAuthorizationCategoryIndex(categories);
+            var built = buildWorkAuthorizationCategory(yesNoValue, statusValue);
+            if (!built) {
+                if (idx !== -1) {
+                    categories.splice(idx, 1);
+                    setCategories(categories, function () {
+                        if (statusEl) flashFieldStatus(statusEl, 'Work authorization autofill cleared.');
+                    });
+                }
                 return;
             }
-            if (categoryCoversAllTypes(categories[existingIdx])) {
-                showStatus('Work Authorization Status preset is already saved.', false);
-                return;
+            if (idx === -1) {
+                categories.push(built);
+            } else {
+                categories[idx] = built;
             }
-            // Upgrade an older partial preset to cover input/textarea/select/checkbox.
-            var existing = categories[existingIdx];
-            var existingTypes = {};
-            (existing.matching_conditions || []).forEach(function (mc) {
-                var desc = (mc && mc.description ? String(mc.description) : '').toLowerCase();
-                if (desc.indexOf('work authorization') !== -1) existingTypes[mc.type] = true;
-            });
-            fresh.matching_conditions.forEach(function (mc) {
-                if (!existingTypes[mc.type]) existing.matching_conditions.push(mc);
-            });
             setCategories(categories, function () {
-                showStatus('Updated "Work Authorization Status" preset to fill text and dropdown fields. Reloading...', false);
-                setTimeout(function () { window.location.reload(); }, 800);
+                if (statusEl) flashFieldStatus(statusEl, 'Work authorization autofill updated.');
             });
         });
+    }
+
+    function flashFieldStatus(el, message) {
+        if (!el) return;
+        el.textContent = message;
+        el.classList.remove('d-none');
+        clearTimeout(el.__t);
+        el.__t = setTimeout(function () {
+            el.classList.add('d-none');
+        }, 2500);
     }
 
     function exportAllResponses() {
@@ -212,19 +230,47 @@
         reader.readAsText(file);
     }
 
+    function initWorkAuthorizationField() {
+        var yesNoField = document.getElementById('work-authorization-yesno');
+        var statusField = document.getElementById('work-authorization-status');
+        if (!yesNoField && !statusField) return;
+        var help = document.getElementById('work-authorization-status-help');
+
+        function currentValues() {
+            return {
+                yesNo:  yesNoField  ? yesNoField.value  : '',
+                status: statusField ? statusField.value : ''
+            };
+        }
+
+        function onChange() {
+            var v = currentValues();
+            syncWorkAuthorizationFromFields(v.yesNo, v.status, help);
+        }
+
+        if (yesNoField)  yesNoField.addEventListener('change', onChange);
+        if (statusField) statusField.addEventListener('change', onChange);
+
+        // Pull saved values up-front (the vendor script also reloads them
+        // asynchronously, but we run the sync to jf-custom-fields once they
+        // land so the autofill mapping reflects the persisted state on every
+        // page open).
+        var keys = [];
+        if (yesNoField)  keys.push('work-authorization-yesno');
+        if (statusField) keys.push('work-authorization-status');
+        chrome.storage.sync.get(keys, function (res) {
+            if (yesNoField  && res['work-authorization-yesno'])  yesNoField.value  = res['work-authorization-yesno'];
+            if (statusField && res['work-authorization-status']) statusField.value = res['work-authorization-status'];
+            var v = currentValues();
+            syncWorkAuthorizationFromFields(v.yesNo, v.status, null);
+        });
+    }
+
     function init() {
-        var presetBtn = document.getElementById('jf-extras-add-work-auth');
         var exportBtn = document.getElementById('jf-extras-export-all');
         var importBtn = document.getElementById('jf-extras-import-all');
         var importMergeBtn = document.getElementById('jf-extras-import-all-merge');
         var importFileInput = document.getElementById('jf-extras-import-file');
-
-        if (presetBtn) {
-            presetBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                ensureWorkAuthorizationPreset();
-            });
-        }
 
         if (exportBtn) {
             exportBtn.addEventListener('click', function (e) {
@@ -267,6 +313,7 @@
         }
 
         initProfileBackup();
+        initWorkAuthorizationField();
     }
 
     // ---------- Profile backup / restore ----------
