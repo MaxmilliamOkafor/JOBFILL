@@ -1,0 +1,62 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+
+    "manifest_version": 3,
+    "name": "Autofill Smartly - JobFill",
+    "version": "1.7.41",
+    "description": "Autofill any form (job applications, registrations, booking,...) smartly and conveniently!",
+    "icons": {
+        "128": "icons/jf_icon128.png",
+        "48": "icons/jf_icon48_2.png",
+        "16": "icons/jf_icon16.png"
+    },
+    "action": {
+        "default_icon": {
+            "128": "icons/jf_icon128_2.png"
+        },
+        "default_popup": "popup/popup.html"
+    },
+
+    "options_page": "options/options.html",
+
+    "content_scripts": [
+        {
+            "matches": ["*://*/*", "file://*/*"],
+            "js": ["content.js"],
+            "all_frames": true,
+            "run_at": "document_end"
+        }
+    ],
+
+    "background": {
+        "service_worker": "service-worker.js"
+    },
+
+    "commands": {
+        "capture": {
+            "suggested_key": {
+                "default": "Alt+1",
+                "mac": "MacCtrl+1"
+            },
+            "description": "Capture the form fields"
+        },
+        "autofill": {
+            "suggested_key": {
+                "default": "Alt+2",
+                "mac": "MacCtrl+2"
+            },
+            "description": "Autofill"
+        }
+    },
+
+    "web_accessible_resources": [
+        {
+            "resources": ["interceptor.js"],
+            "matches": ["*://*/*"]
+        }
+    ],
+
+    "permissions": ["storage", "unlimitedStorage", "cookies"],
+
+    "host_permissions": ["*://*/*"]
+}

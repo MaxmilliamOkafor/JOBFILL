@@ -1,0 +1,147 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobFill - Popup Page</title>
+    <link href="popup.css" rel="stylesheet">
+    <script src="./popup.js" type="module"></script>
+</head>
+<body class="bg-gray-100 min-w-[300px] min-h-full flex flex-col font-sans">
+
+    <!-- Fill button -->
+    <div class="px-3 pt-3 pb-1">
+        <button type="submit" class="w-full bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-base py-2.5 rounded-lg cursor-pointer border-none" id="fillform">Fill The Form</button>
+    </div>
+
+    <!-- Prefill info / subscription row -->
+    <div class="flex justify-center items-center px-3 py-2 text-sm" id="prefill-info">
+        <div id="with-subscription-info" class="flex items-center gap-3 d-none">
+            <a href="../options/options.html" class="text-indigo-500 no-underline hover:no-underline whitespace-nowrap text-xs" target="_blank">Prefill your info</a>
+            <div id="free-package-container" class="d-none text-xs text-gray-600 flex items-center gap-1">
+                Free: <span id="free-autofill-left"></span><span class="css-separator"></span><a href="" class="text-indigo-500 no-underline hover:no-underline whitespace-nowrap" target="_blank">Upgrade</a>
+            </div>
+            <div id="pro-package-container" class="d-none text-xs">
+                <a href="" class="text-indigo-500 no-underline hover:no-underline whitespace-nowrap" target="_blank">Pro</a>
+            </div>
+        </div>
+        <div id="without-subscription-info" class="d-none">
+            <a href="../options/options.html" class="text-indigo-500 no-underline hover:no-underline whitespace-nowrap text-sm" target="_blank">Prefill your info</a>
+        </div>
+    </div>
+
+    <!-- Settings panel -->
+    <div id="popup-setting" class="flex flex-col gap-2 px-3 pb-1">
+
+        <!-- Auto Capture section -->
+        <div class="auto-cache bg-white rounded-lg shadow-sm p-3 flex flex-col gap-2">
+            <!-- Capture manually row -->
+            <div class="flex items-center">
+                <button type="submit" class="bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-medium px-3 py-1 rounded cursor-pointer border-none" id="capture-manually">Capture manually</button>
+                <span class="d-none text-green-600 text-xs ml-2" id="show-green-capture">&nbsp;captured</span>
+            </div>
+
+            <!-- Auto Capture toggle -->
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-700">Auto Capture</span>
+                <label class="switch">
+                    <input type="checkbox" id="auto-cache">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <!-- Clear current site -->
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-700">Clear captured info (current site)</span>
+                <button id="clear-cache-current-site" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded border-none cursor-pointer">Clear</button>
+            </div>
+
+            <!-- Clear all sites -->
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-700">Clear captured info (all sites)</span>
+                <button id="clear-cache-all-sites" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded border-none cursor-pointer">Clear</button>
+            </div>
+        </div>
+
+        <!-- Auto Trigger section -->
+        <div id="auto-trigger-container" class="auto-trigger bg-white rounded-lg shadow-sm p-3 mt-1 flex flex-col gap-2">
+            <!-- Auto Trigger toggle -->
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-700">Auto Trigger</span>
+                <label class="switch">
+                    <input type="checkbox" id="auto-trigger">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <!-- Disable auto trigger for current site -->
+            <div class="d-none flex items-center justify-between" id="div-disable-auto-trigger-current-site">
+                <span class="text-sm text-gray-700">Disable Auto Trigger for the current site</span>
+                <label class="switch">
+                    <input type="checkbox" id="disable-auto-trigger-for-the-current-site">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Upgrade to unlock Auto Trigger -->
+        <div class="auto-trigger d-none bg-white rounded-lg shadow-sm p-3 mt-1" id="disable-auto-trigger-container">
+            <span class="text-xs text-gray-600">
+                <a href="" class="text-indigo-500 no-underline hover:no-underline whitespace-nowrap" target="_blank">Upgrade</a> to unlock Auto Trigger
+            </span>
+        </div>
+
+        <!-- Career Mode section -->
+        <div id="career-mode-container" class="career-mode bg-white rounded-lg shadow-sm p-3 mt-1">
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-700">Career Mode</span>
+                <label class="switch">
+                    <input type="checkbox" id="career-mode">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Upgrade to unlock Career Mode -->
+        <div class="career-mode d-none bg-white rounded-lg shadow-sm p-3 mt-1" id="disable-career-mode-container">
+            <span class="text-xs text-gray-600">
+                <a href="" class="text-indigo-500 no-underline hover:no-underline whitespace-nowrap" target="_blank">Upgrade</a> to unlock Career Mode
+            </span>
+        </div>
+
+    </div>
+
+    <!-- Promotional banner -->
+    <div class="px-3 pt-2 d-none" id="promo-banner-container">
+        <div class="jf-promo-banner text-center">
+            <button class="jf-promo-close" id="close-promo" title="Hide this message">×</button>
+            <div class="jf-promo-text" id="claim-pro-free" style="cursor: pointer;">
+                🎉 <strong>Claim 1 Month of Pro Plan for Free</strong> 🎉
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading error -->
+    <div class="text-center text-red-600 text-sm px-3 hidden" id="loading-error">
+        could not load the setting, please try to open the popup again or ask for help at <a href="https://groups.google.com/g/jobfill" target="_blank">https://groups.google.com/g/jobfill</a>
+    </div>
+
+    <!-- Sign in -->
+    <div class="text-center mt-6 mb-2 hidden" id="sign-in">
+        <a href="https://jobfill.ai/google-login" target="_blank">
+            <button type="submit" class="bg-indigo-500 hover:bg-indigo-400 text-white font-medium px-5 py-2 rounded-lg border-none cursor-pointer">Sign in with Google</button>
+        </a>
+    </div>
+
+    <!-- Default user -->
+    <div class="text-center p-3 hidden" id="default-user"></div>
+
+    <div class="flex-1"></div>
+
+    <!-- Footer links -->
+    <div class="text-center py-2 mb-1">
+        <a class="inline text-indigo-500 no-underline hover:no-underline mx-3 text-xs" href="https://jobfill.ai/docs" target="_blank">Instructions</a>
+        <a class="inline text-indigo-500 no-underline hover:no-underline mx-3 text-xs" href="https://groups.google.com/g/jobfill" target="_blank">Need help?</a>
+    </div>
+
+</body>
+</html>
