@@ -3,7 +3,7 @@
 
     "manifest_version": 3,
     "name": "Autofill Smartly - JobFill",
-    "version": "1.7.46",
+    "version": "1.7.48",
     "description": "Autofill any form (job applications, registrations, booking,...) smartly and conveniently!",
     "icons": {
         "128": "icons/jf_icon128.png",

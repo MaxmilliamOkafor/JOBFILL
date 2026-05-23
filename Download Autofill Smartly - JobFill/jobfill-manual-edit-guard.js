@@ -118,4 +118,56 @@
         watchValueProp(window.HTMLInputElement && window.HTMLInputElement.prototype);
         watchValueProp(window.HTMLTextAreaElement && window.HTMLTextAreaElement.prototype);
     } catch (e) { /* noop */ }
+
+    // Per-URL guards: pages where we should NOT let JobFill (or anyone else)
+    // programmatically attach a file to a file input.
+    var FILE_UPLOAD_BLOCKLIST = [
+        /(^|\.)linkedin\.com$/i  // match host
+    ];
+    var FILE_UPLOAD_BLOCKLIST_PATHS = [
+        /\/jobs\/application-settings/i
+    ];
+
+    function shouldBlockFileUpload() {
+        try {
+            var host = location.hostname;
+            var path = location.pathname || '';
+            var hostMatch = FILE_UPLOAD_BLOCKLIST.some(function (re) { return re.test(host); });
+            if (!hostMatch) return false;
+            return FILE_UPLOAD_BLOCKLIST_PATHS.some(function (re) { return re.test(path); });
+        } catch (e) { return false; }
+    }
+
+    if (shouldBlockFileUpload()) {
+        try {
+            var inputProto = window.HTMLInputElement && window.HTMLInputElement.prototype;
+            if (inputProto) {
+                var filesDesc;
+                try {
+                    filesDesc = Object.getOwnPropertyDescriptor(inputProto, 'files');
+                } catch (e) { filesDesc = null; }
+                if (filesDesc && filesDesc.set && !filesDesc.set.__jfFileBlocked) {
+                    var origFilesSet = filesDesc.set;
+                    var blockedFilesSet = function (v) {
+                        try {
+                            if (this.type === 'file') {
+                                // Refuse programmatic file attachment on the
+                                // blocked URL — only the native file picker
+                                // (which bypasses this JS setter) can attach.
+                                return;
+                            }
+                        } catch (e) { /* fall through to original setter */ }
+                        return origFilesSet.call(this, v);
+                    };
+                    blockedFilesSet.__jfFileBlocked = true;
+                    Object.defineProperty(inputProto, 'files', {
+                        configurable: true,
+                        enumerable: filesDesc.enumerable,
+                        get: filesDesc.get,
+                        set: blockedFilesSet
+                    });
+                }
+            }
+        } catch (e) { /* noop */ }
+    }
 })();
